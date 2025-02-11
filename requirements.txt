@@ -8,12 +8,14 @@ cffi==1.16.0
 charset-normalizer==3.3.0
 cleo==2.1.0
 click==8.1.8
+colorama==0.4.6
 crashtest==0.4.1
 cryptography==41.0.4
 distlib==0.3.8
-Django==5.1.6
+Django==4.2
 django-filter==24.3
-djangorestframework==3.15.2
+djangorestframework==3.14.0
+djangorestframework_simplejwt==5.4.0
 dulwich==0.22.7
 fastjsonschema==2.18.1
 filelock==3.16.1
@@ -36,7 +38,10 @@ platformdirs==4.3.6
 poetry==2.0.1
 poetry-core==2.0.1
 pycparser==2.21
+PyJWT==2.10.1
 pyproject_hooks==1.0.0
+pytz==2025.1
+pywin32-ctypes==0.2.3
 rapidfuzz==3.5.2
 requests==2.31.0
 requests-toolbelt==1.0.0
@@ -46,6 +51,7 @@ six==1.17.0
 sqlparse==0.5.3
 tomlkit==0.12.1
 trove-classifiers==2023.9.19
+tzdata==2025.1
 urllib3==2.0.6
 virtualenv==20.29.1
 zipp==3.17.0
