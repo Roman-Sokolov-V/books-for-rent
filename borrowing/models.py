@@ -7,7 +7,7 @@ from book.models import Book
 class Borrowing(models.Model):
     borrow_date = models.DateField()
     expected_return_date = models.DateField()
-    actual_return_date = models.DateField()
+    actual_return_date = models.DateField(null=True, blank=True)
     book = models.OneToOneField(Book, on_delete=models.CASCADE)
     user = models.OneToOneField(get_user_model(), on_delete=models.CASCADE)
 
