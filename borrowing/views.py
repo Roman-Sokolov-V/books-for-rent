@@ -5,6 +5,7 @@ from django.db.models import F
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, generics, mixins, status
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from book.models import Book
@@ -19,9 +20,12 @@ class BorrowingViewSet(
     viewsets.GenericViewSet
 ):
     serializer_class = BorrowingSerializer
+    permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
         queryset = Borrowing.objects.all()
+        if not self.request.user.is_staff:
+            queryset = queryset.filter(user=self.request.user)
         user = self.request.query_params.get("user", None)
         is_active = self.request.query_params.get("is_active", None)
         if user is not None:
