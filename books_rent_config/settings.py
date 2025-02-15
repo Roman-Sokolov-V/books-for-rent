@@ -45,10 +45,12 @@ INSTALLED_APPS = [
     "book",
     "borrowing",
     'django_filters',
+    "debug_toolbar",
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -147,3 +149,7 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": False,
     "AUTH_HEADER_NAME": "HTTP_AUTHORIZE",
 }
+
+INTERNAL_IPS = [
+    "127.0.0.1",
+]

@@ -2,6 +2,7 @@ from django.urls import path
 from book.views import BookCreateAPIView, BookUpdateAPIView
 
 
+
 app_name = 'book'
 
 urlpatterns = [
