@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from book.models import Book
 from borrowing.models import Borrowing
-from borrowing.serializers import BorrowingSerializer, BorrowingBookReturnSerializer
+from borrowing.serializers import BorrowingSerializer, BorrowingBookReturnSerializer, DetailBorrowingSerializer
 
 
 class BorrowingViewSet(
@@ -42,6 +42,8 @@ class BorrowingViewSet(
     def get_serializer_class(self):
         if self.action == "return_book":
             return BorrowingBookReturnSerializer
+        if self.action == "retrieve":
+            return DetailBorrowingSerializer
         return BorrowingSerializer
 
     @action(

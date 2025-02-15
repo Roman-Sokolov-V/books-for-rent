@@ -6,7 +6,10 @@ from datetime import date
 from rest_framework import serializers
 
 from book.models import Book
+from book.serializers import BookSerializer
 from borrowing.models import Borrowing
+
+
 
 
 class BorrowingSerializer(serializers.ModelSerializer):
@@ -60,3 +63,9 @@ class BorrowingBookReturnSerializer(serializers.ModelSerializer):
         if self.instance and self.instance.actual_return_date is not None:
             raise serializers.ValidationError("This book has already been returned.")
         return data
+
+class DetailBorrowingSerializer(serializers.ModelSerializer):
+    book = BookSerializer(read_only=True)
+    class Meta:
+        model = Borrowing
+        fields = ("id", "book", "borrow_date", "expected_return_date", "actual_return_date", "user")

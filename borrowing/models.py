@@ -1,5 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.db.models import CheckConstraint, Q, F
+from django.core.exceptions import ValidationError
 
 from book.models import Book
 
@@ -10,6 +12,18 @@ class Borrowing(models.Model):
     actual_return_date = models.DateField(null=True, blank=True)
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)
+
+    class Meta:
+        constraints = [
+            CheckConstraint(
+                check=Q(expected_return_date__gte=F("borrow_date")),
+                name="borrowing_date_must_be_before_expected_return_date",
+            ),
+            CheckConstraint(
+                check=Q(actual_return_date__gte=F("borrow_date")),
+                name="borrowing_date_must_be_before_actual_return_date",
+            )
+        ]
 
     @staticmethod
     def validate_dates(borrow_date, expected_return_date, actual_return_date, error):
@@ -24,5 +38,5 @@ class Borrowing(models.Model):
             borrow_date=self.borrow_date,
             expected_return_date=self.expected_return_date,
             actual_return_date=self.actual_return_date,
-            error=ValueError
+            error=ValidationError
         )
