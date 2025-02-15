@@ -13,10 +13,10 @@ from borrowing.models import Borrowing
 
 
 class BorrowingSerializer(serializers.ModelSerializer):
-    actual_return_date = serializers.DateField(read_only=True)
     class Meta:
         model = Borrowing
         fields = ("id", "book", "borrow_date", "expected_return_date", "actual_return_date", "user")
+        read_only_fields = ("actual_return_date", "user")
 
     def validate(self, data):
         Borrowing.validate_dates(

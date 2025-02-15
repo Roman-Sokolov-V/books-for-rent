@@ -18,7 +18,6 @@ class BorrowingViewSet(
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet
 ):
-    #queryset = Borrowing.objects.all()
     serializer_class = BorrowingSerializer
 
     def get_queryset(self):
@@ -38,6 +37,10 @@ class BorrowingViewSet(
             if is_active in {"true", "1", "yes"}:
                 queryset = queryset.filter(actual_return_date__isnull=True)
         return queryset
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
 
     def get_serializer_class(self):
         if self.action == "return_book":
