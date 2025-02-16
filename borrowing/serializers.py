@@ -56,13 +56,15 @@ class BorrowingSerializer(serializers.ModelSerializer):
 class BorrowingBookReturnSerializer(serializers.ModelSerializer):
     class Meta:
         model = Borrowing
-        fields = ("actual_return_date",)
+        fields = ("id", "book", "user", "borrow_date", "expected_return_date", "actual_return_date")
+        read_only_fields = ("id", "book", "user", "borrow_date", "expected_return_date", "actual_return_date")
 
 
     def validate(self, data):
         if self.instance and self.instance.actual_return_date is not None:
             raise serializers.ValidationError("This book has already been returned.")
         return data
+
 
 class DetailBorrowingSerializer(serializers.ModelSerializer):
     book = BookSerializer(read_only=True)

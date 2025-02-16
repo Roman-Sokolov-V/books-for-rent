@@ -26,11 +26,12 @@ class BorrowingViewSet(
         queryset = Borrowing.objects.all()
         if not self.request.user.is_staff:
             queryset = queryset.filter(user=self.request.user)
-        user = self.request.query_params.get("user", None)
+        user_id = self.request.query_params.get("user_id", None)
         is_active = self.request.query_params.get("is_active", None)
-        if user is not None:
+
+        if user_id is not None and self.request.user.is_staff:
             try:
-                user = int(user)
+                user = int(user_id)
                 queryset = queryset.filter(user_id=user)
             except ValueError:
                 return queryset
@@ -60,15 +61,13 @@ class BorrowingViewSet(
     )
     def return_book(self, request, pk=None):
         borrowing = self.get_object()
-        # borrowing.actual_return_date = date.today()
-        # borrowing.save()
         serializer = self.get_serializer(borrowing, data=request.data)
         if serializer.is_valid():
             with transaction.atomic():
+                borrowing.actual_return_date = date.today()
+                borrowing.save()
                 book_id = borrowing.book_id
                 serializer.save()
                 Book.objects.filter(pk=book_id).update(inventory=F("inventory") + 1)
                 return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
