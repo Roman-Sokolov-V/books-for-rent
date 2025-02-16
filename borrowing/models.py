@@ -24,6 +24,8 @@ class Borrowing(models.Model):
                 name="borrowing_date_must_be_before_actual_return_date",
             )
         ]
+    def __str__(self):
+        return f"Borrowing for {self.book.title} by {self.user.email}"
 
     @staticmethod
     def validate_dates(borrow_date, expected_return_date, actual_return_date, error):
@@ -33,7 +35,6 @@ class Borrowing(models.Model):
             raise error("Borrowing date must be before actual return date")
 
     def clean(self):
-
         Borrowing.validate_dates(
             borrow_date=self.borrow_date,
             expected_return_date=self.expected_return_date,
