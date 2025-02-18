@@ -43,6 +43,7 @@ pycparser==2.21
 PyJWT==2.10.1
 pyproject_hooks==1.0.0
 pyTelegramBotAPI==4.26.0
+python-dotenv==1.0.1
 pytz==2025.1
 pywin32-ctypes==0.2.3
 rapidfuzz==3.5.2
