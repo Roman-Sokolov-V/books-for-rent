@@ -25,7 +25,7 @@ class Borrowing(models.Model):
             )
         ]
     def __str__(self):
-        return f"Borrowing for {self.book.title} by {self.user.email}"
+        return f"{self.book.title} expected return date {self.expected_return_date}"
 
     @staticmethod
     def validate_dates(borrow_date, expected_return_date, actual_return_date, error):
