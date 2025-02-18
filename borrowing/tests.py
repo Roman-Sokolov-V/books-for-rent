@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.core.exceptions import ValidationError
@@ -32,12 +33,11 @@ def sample_book(**params):
 
 def sample_bd():
     book = sample_book()
-    User = get_user_model()
-    users = User.objects.bulk_create(
+    users = get_user_model().objects.bulk_create(
         [
-            User(email="user@example.com", password="password"),
-            User(email="another@example.com", password="another_password"),
-            User(email="admin@example.com", password="admin_password"),
+            get_user_model()(email="user@example.com", password="password"),
+            get_user_model()(email="another@example.com", password="another_password"),
+            get_user_model()(email="admin@example.com", password="admin_password"),
         ]
     )
     auth_user, another_user, admin = users
@@ -267,5 +267,4 @@ class Authenticated(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         response = self.client.post(f"{URL_BORROWING}{borrowing.id}/return/")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
         ##Повертає той что брав, чи адмін, дата повернення сьогодні чи обирати

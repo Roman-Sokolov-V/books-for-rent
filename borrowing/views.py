@@ -10,14 +10,18 @@ from rest_framework.response import Response
 
 from book.models import Book
 from borrowing.models import Borrowing
-from borrowing.serializers import BorrowingSerializer, BorrowingBookReturnSerializer, DetailBorrowingSerializer
+from borrowing.serializers import (
+    BorrowingSerializer,
+    BorrowingBookReturnSerializer,
+    DetailBorrowingSerializer,
+)
 
 
 class BorrowingViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
-    viewsets.GenericViewSet
+    viewsets.GenericViewSet,
 ):
     serializer_class = BorrowingSerializer
     permission_classes = (IsAuthenticated,)
@@ -46,7 +50,6 @@ class BorrowingViewSet(
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-
     def get_serializer_class(self):
         if self.action == "return_book":
             return BorrowingBookReturnSerializer
@@ -54,11 +57,7 @@ class BorrowingViewSet(
             return DetailBorrowingSerializer
         return BorrowingSerializer
 
-    @action(
-        detail=True,
-        methods=['post'],
-        url_path="return"
-    )
+    @action(detail=True, methods=["post"], url_path="return")
     def return_book(self, request, pk=None):
         borrowing = self.get_object()
         serializer = self.get_serializer(borrowing, data=request.data)
