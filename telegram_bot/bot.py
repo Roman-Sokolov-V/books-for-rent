@@ -1,12 +1,13 @@
 import os
 import django
 
+from datetime import datetime
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "books_rent_config.settings")
 django.setup()
 
+import telebot #pyTelegramBotAPI
 
-
-import telebot
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from telebot import types
@@ -46,23 +47,32 @@ def start(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     user_id = message.from_user.id
     if get_user_model().objects.filter(telegram_id=user_id).exists():
+        btn2 = types.KeyboardButton("/info")
         btn3 = types.KeyboardButton("/rented")
-        markup.row(btn3)
+        markup.row(btn2, btn3)
         bot.send_message(
             message.chat.id,
             f"Hi {message.from_user.first_name}, this is a bot for managing books in the library.",
             reply_markup=markup,
         )
     else:
-        #bot.send_message(message.chat.id, "Please enter your email and password of the book rental service")
+        bot.send_message(message.chat.id, "Please enter your email and password of the book rental service")
         bot.send_message(message.chat.id, "input email:")
         bot.register_next_step_handler(message, get_email)
 
 
 @bot.message_handler(commands=["rented"])
 def rented(message):
-    borrowings = Borrowing.objects.filter(user__telegram_id=message.from_user.id)
+    borrowings = Borrowing.objects.filter(user__telegram_id=message.from_user.id).select_related("book")
     for borrowing in borrowings:
-        bot.send_message(message.chat.id, f"{borrowing}")
+        rented_days = (datetime.today().date() - borrowing.borrow_date).days
+        bot.send_message(message.chat.id, f"{borrowing.book}, the cost of rent: {borrowing.book.daily_fee}, today accrued the cost of rolling: {borrowing.book.daily_fee * rented_days}")
 
-bot.polling(none_stop=True)
+@bot.message_handler(commands=["info"])
+def info(message):
+    bot.send_message(message.chat.id, message)
+    bot.send_message(message.chat.id, message.chat.id)
+
+
+def start_bot():
+    bot.polling(none_stop=True)
