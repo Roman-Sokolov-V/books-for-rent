@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "borrowing",
     "django_filters",
     "debug_toolbar",
+    "telegram_bot"
 ]
 
 MIDDLEWARE = [
