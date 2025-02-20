@@ -49,7 +49,9 @@ INSTALLED_APPS = [
     "borrowing",
     "django_filters",
     "debug_toolbar",
-    "telegram_bot"
+    "telegram_bot",
+    'django_q',
+
 ]
 
 MIDDLEWARE = [
@@ -158,3 +160,20 @@ INTERNAL_IPS = [
 ]
 
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+
+
+Q_CLUSTER = {
+"name": "books_for_rent",
+"workers": 4,
+"timeout": 90,
+"retry": 120,
+"queue_limit": 50,
+"bulk": 10,
+"recycle": 500,
+"guard_cycle": 10,
+"save_limit": 1000,
+"orm": "default",
+"log_level": "DEBUG",
+"cache": "default",
+"broker": "redis://127.0.0.1:6379",
+}
