@@ -51,7 +51,6 @@ INSTALLED_APPS = [
     "debug_toolbar",
     "telegram_bot",
     'django_q',
-
 ]
 
 MIDDLEWARE = [
@@ -121,7 +120,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Europe/Kyiv"
 
 USE_I18N = True
 
@@ -163,17 +162,26 @@ TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 
 
 Q_CLUSTER = {
-"name": "books_for_rent",
-"workers": 4,
-"timeout": 90,
-"retry": 120,
-"queue_limit": 50,
-"bulk": 10,
-"recycle": 500,
-"guard_cycle": 10,
-"save_limit": 1000,
-"orm": "default",
-"log_level": "DEBUG",
-"cache": "default",
-"broker": "redis://127.0.0.1:6379",
+    'name': 'myproject',
+    'workers': 8,
+    'recycle': 500,
+    'timeout': 60,
+    "max_attempts": 3,
+    'compress': True,
+    'save_limit': 250,
+    'queue_limit': 500,
+    'cpu_affinity': 1,
+    'label': 'Django Q',
+    'orm': 'default',
+    'redis': {
+        'host': 'localhost',
+        'port': 6379,
+        'db': 0,
+        'password': None,
+        'socket_timeout': None,
+        'charset': 'utf-8',
+        'errors': 'strict',
+        'unix_socket_path': None
+    }
 }
+    #"broker": {"redis://127.0.0.1:6379",}
