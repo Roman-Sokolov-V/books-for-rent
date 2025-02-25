@@ -9,14 +9,17 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 from datetime import timedelta
 
+from dotenv import load_dotenv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+load_dotenv(BASE_DIR / ".env")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -46,6 +49,8 @@ INSTALLED_APPS = [
     "borrowing",
     "django_filters",
     "debug_toolbar",
+    "telegram_bot",
+    'django_q',
 ]
 
 MIDDLEWARE = [
@@ -115,7 +120,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Europe/Kyiv"
 
 USE_I18N = True
 
@@ -152,3 +157,33 @@ SIMPLE_JWT = {
 INTERNAL_IPS = [
     "127.0.0.1",
 ]
+
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+
+
+Q_CLUSTER = {
+    'name': 'myproject',
+    'workers': 8,
+    'recycle': 500,
+    'timeout': 60,
+    "max_attempts": 1,
+    "clean_up": True,
+    "cleanup_delay": 3600,
+    'compress': True,
+    'save_limit': 250,
+    'queue_limit': 500,
+    'cpu_affinity': 1,
+    'label': 'Django Q',
+    'orm': 'default',
+    'redis': {
+        'host': 'localhost',
+        'port': 6379,
+        'db': 0,
+        'password': None,
+        'socket_timeout': None,
+        'charset': 'utf-8',
+        'errors': 'strict',
+        'unix_socket_path': None
+    }
+}
+    #"broker": {"redis://127.0.0.1:6379",}
