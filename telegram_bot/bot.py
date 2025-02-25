@@ -1,78 +1,29 @@
+import logging
 import os
-import django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'books_rent_config.settings')
 
-from datetime import datetime
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "books_rent_config.settings")
-django.setup()
-
-import telebot #pyTelegramBotAPI
-
-from django.contrib.auth import get_user_model
-from django.core.exceptions import ObjectDoesNotExist
-from telebot import types
 from books_rent_config.settings import TELEGRAM_BOT_TOKEN
 
-from borrowing.models import Borrowing
+import asyncio
+from aiogram import Bot, Dispatcher
+from telegram_bot.handlers import start_handler
 
 
+bot = Bot(token=TELEGRAM_BOT_TOKEN)
+dp = Dispatcher()
 
-bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
+async def main():
+    print("Telegram bot is running...")
+    dp.include_router(start_handler.router)
 
-def check_user(message, email, password):
+    await bot.delete_webhook(drop_pending_updates=True)
+    await dp.start_polling(bot)
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     try:
-        user = get_user_model().objects.get(email=email)
-        if user.check_password(password):
-            user.telegram_id = message.from_user.id
-            user.save()
-            bot.send_message(message.chat.id, "Success")
-        else:
-            bot.send_message(message.chat.id, "User with this email or/and password does not exist")
-    except ObjectDoesNotExist:
-        bot.send_message(message.chat.id, "User with this email or/and password does not exist")
-    bot.register_next_step_handler(message, get_email)
-
-def get_email(message):
-    email = message.text  # Отримуємо текстове повідомлення
-    bot.send_message(message.chat.id, "Input password:")
-    bot.register_next_step_handler(message, get_password, email)
-
-
-def get_password(message, email):
-    password = message.text
-    check_user(message, email, password)
-
-@bot.message_handler(commands=['start'])
-def start(message):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    user_id = message.from_user.id
-    if get_user_model().objects.filter(telegram_id=user_id).exists():
-        btn2 = types.KeyboardButton("/info")
-        btn3 = types.KeyboardButton("/rented")
-        markup.row(btn2, btn3)
-        bot.send_message(
-            message.chat.id,
-            f"Hi {message.from_user.first_name}, this is a bot for managing books in the library.",
-            reply_markup=markup,
-        )
-    else:
-        bot.send_message(message.chat.id, "Please enter your email and password of the book rental service")
-        bot.send_message(message.chat.id, "input email:")
-        bot.register_next_step_handler(message, get_email)
-
-
-@bot.message_handler(commands=["rented"])
-def rented(message):
-    borrowings = Borrowing.objects.filter(user__telegram_id=message.from_user.id).select_related("book")
-    for borrowing in borrowings:
-        rented_days = (datetime.today().date() - borrowing.borrow_date).days
-        bot.send_message(message.chat.id, f"{borrowing.book}, the cost of rent: {borrowing.book.daily_fee}, today accrued the cost of rolling: {borrowing.book.daily_fee * rented_days}")
-
-@bot.message_handler(commands=["info"])
-def info(message):
-    bot.send_message(message.chat.id, message)
-    bot.send_message(message.chat.id, message.chat.id)
-
-
-def start_bot():
-    bot.polling(none_stop=True)
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Telegram bot stopped")
