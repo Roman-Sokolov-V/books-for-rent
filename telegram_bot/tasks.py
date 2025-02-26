@@ -8,11 +8,11 @@ from datetime import timedelta
 
 def create_scheduled_task():
     Schedule.objects.create(
-        func='telegram_bot.tasks.find_expired_and_send_message',
+        func="telegram_bot.tasks.find_expired_and_send_message",
         next_run=timezone.now() + timedelta(seconds=30),
         schedule_type=Schedule.DAILY,
         repeats=-1,
-        )
+    )
 
 
 def find_expired_and_send_message() -> None:
