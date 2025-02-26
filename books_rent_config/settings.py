@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "debug_toolbar",
     "telegram_bot",
     'django_q',
+    "payment"
 ]
 
 MIDDLEWARE = [
