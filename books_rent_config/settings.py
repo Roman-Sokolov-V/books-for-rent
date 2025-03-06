@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
+from os import getenv
 from pathlib import Path
 
 from datetime import timedelta
@@ -144,7 +145,6 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-    #'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
 }
 
 
@@ -187,4 +187,10 @@ Q_CLUSTER = {
         'unix_socket_path': None
     }
 }
-    #"broker": {"redis://127.0.0.1:6379",}
+
+##Stripe
+STRIPE_PUBLISH_KEY=getenv("STRIPE_PUBLISH_KEY")
+
+STRIPE_SECRET_KEY=getenv("STRIPE_SECRET_KEY")
+
+STRIPE_WEBHOOK_SECRET=getenv("STRIPE_WEBHOOK_SECRET")
