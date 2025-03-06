@@ -17,10 +17,15 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
+from payment.views import payment_success, payment_cancel
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("users/", include("user.urls"), name="users"),
     path("books/", include("book.urls"), name="books"),
     path("borrowings/", include("borrowing.urls"), name="borrowings"),
+    path("payments/", include("payment.urls"), name="payments"),
+    path("success/", payment_success, name="payment_success"),
+    path("cancel/", payment_cancel, name="payment_cancel"),
     path("__debug__/", include("debug_toolbar.urls")),
 ]
