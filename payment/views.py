@@ -1,6 +1,7 @@
 import stripe
 from django.conf import settings
 from django.shortcuts import render
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions
 from rest_framework.decorators import api_view
 
@@ -24,6 +25,14 @@ class PaymentListView(generics.ListAPIView):
         else:
             return Payment.objects.filter(borrowing__user=self.request.user)
 
+    @extend_schema(
+        description=(
+                "List all payments for staff, or only the user's payments for non-staff."
+        )
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
 
 class PaymentDetailView(generics.RetrieveAPIView):
     queryset = Payment.objects.all()
@@ -32,10 +41,12 @@ class PaymentDetailView(generics.RetrieveAPIView):
 
 
 def payment_success(request):
+    """redirect to success page"""
     return render(request, "payment/success.html")
 
 
 def payment_cancel(request):
+    """redirect to cancel page"""
     return render(request, "payment/cancel.html")
 
 
@@ -45,6 +56,7 @@ endpoint_secret = settings.STRIPE_WEBHOOK_SECRET
 @api_view(["POST"])
 @csrf_exempt
 def my_webhook_view(request):
+
     payload = request.body
     sig_header = request.META["HTTP_STRIPE_SIGNATURE"]
     event = None
