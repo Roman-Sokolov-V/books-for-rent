@@ -1,6 +1,8 @@
 from django.db import transaction
 from django.db.models import F
 from django.views.generic.dates import timezone_today
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse, OpenApiExample
 from rest_framework import viewsets, generics, mixins, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -25,10 +27,12 @@ class BorrowingViewSet(
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
 ):
+    """Borrowing Create, List, Retrieve viewset"""
     serializer_class = BorrowingSerializer
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
+        """filtering by user and is_active"""
         queryset = Borrowing.objects.all()
         if not self.request.user.is_staff:
             queryset = queryset.filter(user=self.request.user)
@@ -50,9 +54,29 @@ class BorrowingViewSet(
         return queryset
 
     def perform_create(self, serializer):
+        """Assigns the current request user to the borrowing instance, saves it, and returns the instance."""
         return serializer.save(user=self.request.user)
 
+    @extend_schema(
+        request=BorrowingSerializer,  # Вхідні дані
+        responses={
+            303: OpenApiResponse(
+                description="Redirect to Stripe Checkout session",
+                examples=[
+                    OpenApiExample(
+                        "Redirect to Stripe",
+                        value={"url": "https://checkout.stripe.com/pay/cs_test_..."},
+                    )
+                ],
+            ),
+        },
+        description=(
+                "Creates a new borrowing instance and initiates a Stripe Checkout session. "
+                "Creates a new payment instance. Returns a redirect URL to the payment page."
+        )
+    )
     def create(self, request, *args, **kwargs):
+        """When create borrowing call create_stripe_session"""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         borrowing = self.perform_create(serializer)
@@ -69,6 +93,7 @@ class BorrowingViewSet(
 
     @action(detail=True, methods=["post"], url_path="return")
     def return_book(self, request, pk=None):
+        """return book and update book inventory"""
         borrowing = self.get_object()
         serializer = self.get_serializer(borrowing, data=request.data)
         if serializer.is_valid():
@@ -84,3 +109,29 @@ class BorrowingViewSet(
                 Book.objects.filter(pk=book_id).update(inventory=F("inventory") + 1)
                 return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "user_id",
+                type=OpenApiTypes.INT,
+                description="Filter by user ID (available only for staff users).",
+                location=OpenApiParameter.QUERY,
+                required=False,
+            ),
+            OpenApiParameter(
+                "is_active",
+                type=OpenApiTypes.STR,
+                enum=["true", "1", "yes", "false", "0", "no"],
+                description="Filter by active status. Acceptable values: "
+                            "`true, 1, yes` (for active), `false, 0, no` (for inactive).",
+                location=OpenApiParameter.QUERY,
+                required=False,
+            )
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        """Get list of borrowings"""
+        return super().list(request, *args, **kwargs)
+
+
