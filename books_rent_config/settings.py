@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
+
 import os
 from os import getenv
 from pathlib import Path
@@ -51,8 +52,9 @@ INSTALLED_APPS = [
     "django_filters",
     "debug_toolbar",
     "telegram_bot",
-    'django_q',
-    "payment"
+    "django_q",
+    "payment",
+    "drf_spectacular",
 ]
 
 MIDDLEWARE = [
@@ -145,6 +147,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 
@@ -159,38 +162,44 @@ INTERNAL_IPS = [
     "127.0.0.1",
 ]
 
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 
 Q_CLUSTER = {
-    'name': 'myproject',
-    'workers': 8,
-    'recycle': 500,
-    'timeout': 60,
+    "name": "myproject",
+    "workers": 8,
+    "recycle": 500,
+    "timeout": 60,
     "max_attempts": 1,
     "clean_up": True,
     "cleanup_delay": 3600,
-    'compress': True,
-    'save_limit': 250,
-    'queue_limit': 500,
-    'cpu_affinity': 1,
-    'label': 'Django Q',
-    'orm': 'default',
-    'redis': {
-        'host': 'localhost',
-        'port': 6379,
-        'db': 0,
-        'password': None,
-        'socket_timeout': None,
-        'charset': 'utf-8',
-        'errors': 'strict',
-        'unix_socket_path': None
-    }
+    "compress": True,
+    "save_limit": 250,
+    "queue_limit": 500,
+    "cpu_affinity": 1,
+    "label": "Django Q",
+    "orm": "default",
+    "redis": {
+        "host": "localhost",
+        "port": 6379,
+        "db": 0,
+        "password": None,
+        "socket_timeout": None,
+        "charset": "utf-8",
+        "errors": "strict",
+        "unix_socket_path": None,
+    },
 }
 
 ##Stripe
-STRIPE_PUBLISH_KEY=getenv("STRIPE_PUBLISH_KEY")
+STRIPE_PUBLISH_KEY = getenv("STRIPE_PUBLISH_KEY")
 
-STRIPE_SECRET_KEY=getenv("STRIPE_SECRET_KEY")
+STRIPE_SECRET_KEY = getenv("STRIPE_SECRET_KEY")
 
-STRIPE_WEBHOOK_SECRET=getenv("STRIPE_WEBHOOK_SECRET")
+STRIPE_WEBHOOK_SECRET = getenv("STRIPE_WEBHOOK_SECRET")
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Book for rent API",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+}
