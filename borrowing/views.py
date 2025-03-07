@@ -91,6 +91,20 @@ class BorrowingViewSet(
             return DetailBorrowingSerializer
         return BorrowingSerializer
 
+    @extend_schema(
+        description="Return a borrowed book, update its inventory, and handle late return fines.",
+        parameters=[
+            OpenApiParameter(
+                name="borrow_id",
+                type=OpenApiTypes.INT,
+                description="ID of the borrowing instance"
+            ),
+        ],
+        responses={
+                      200: BorrowingSerializer,
+                      400: "Bad Request (Validation Errors)",
+                  }
+    )
     @action(detail=True, methods=["post"], url_path="return")
     def return_book(self, request, pk=None):
         """return book and update book inventory"""
