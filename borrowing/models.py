@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.db.models import CheckConstraint, Q, F
 from django.core.exceptions import ValidationError
+from django.db.models.constraints import UniqueConstraint
 
 from book.models import Book
 
@@ -22,6 +23,11 @@ class Borrowing(models.Model):
             CheckConstraint(
                 check=Q(actual_return_date__gte=F("borrow_date")),
                 name="borrowing_date_must_be_before_actual_return_date",
+            ),
+            UniqueConstraint(
+                fields=["user", "book"],
+                condition=Q(actual_return_date__isnull=True),
+                name="unique_active_borrowing",
             )
         ]
     def __str__(self):
