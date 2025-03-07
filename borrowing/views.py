@@ -1,8 +1,6 @@
-from datetime import date
-
 from django.db import transaction
 from django.db.models import F
-from django.shortcuts import get_object_or_404
+from django.views.generic.dates import timezone_today
 from rest_framework import viewsets, generics, mixins, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -15,7 +13,11 @@ from borrowing.serializers import (
     BorrowingBookReturnSerializer,
     DetailBorrowingSerializer,
 )
+from payment.models import Payment
 
+from payment.utils import create_stripe_session
+
+FINE_MULTIPLIER = 2
 
 class BorrowingViewSet(
     mixins.CreateModelMixin,
@@ -48,7 +50,15 @@ class BorrowingViewSet(
         return queryset
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        return serializer.save(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        borrowing = self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        amount = (borrowing.expected_return_date - borrowing.borrow_date).days * borrowing.book.daily_fee
+        return create_stripe_session(borrowing=borrowing, amount=amount, payments_type="PAYMENT")
 
     def get_serializer_class(self):
         if self.action == "return_book":
@@ -62,10 +72,14 @@ class BorrowingViewSet(
         borrowing = self.get_object()
         serializer = self.get_serializer(borrowing, data=request.data)
         if serializer.is_valid():
+            if timezone_today() > borrowing.expected_return_date and Payment.objects.filter(borrowing=borrowing, type="FINE", status="PAID").exists() == False:
+                amount = (timezone_today() - borrowing.expected_return_date).days * borrowing.book.daily_fee * FINE_MULTIPLIER
+                return create_stripe_session(borrowing=borrowing, amount=amount, payments_type="FINE")
+
             with transaction.atomic():
-                borrowing.actual_return_date = date.today()
+                borrowing.actual_return_date = timezone_today()
                 borrowing.save()
-                book_id = borrowing.book_id
+                book_id = borrowing.book.id
                 serializer.save()
                 Book.objects.filter(pk=book_id).update(inventory=F("inventory") + 1)
                 return Response(serializer.data, status=status.HTTP_200_OK)

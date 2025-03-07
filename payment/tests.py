@@ -5,21 +5,21 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 from django.contrib.auth import get_user_model
+from django.db.models.signals import post_save
 from django.http import HttpResponseRedirect
 from django.views.generic.dates import timezone_today
 
 from rest_framework.reverse import reverse
-
-
 from rest_framework.test import APIClient, APITestCase
 from rest_framework import status
 
-import payment
 from book.models import Book
 from borrowing.models import Borrowing
+from borrowing.signals import borrowing_created
 from payment.models import Payment
 from payment.serialisers import PaymentSerializer
 from payment.utils import create_stripe_session, create_payment, complete_payment
+
 
 URL_PAYMENT_LIST = reverse("payments:payments-list")
 URL_PAYMENT_FIRST = reverse("payments:payments-detail", kwargs={"pk": 1})
@@ -27,6 +27,7 @@ URL_CREATE_BORROWING = reverse("borrowings:borrowings-list")
 
 
 def make_test_db():
+    post_save.disconnect(borrowing_created, sender=Borrowing)
     user = get_user_model().objects.create_user(email="<EMAIL>", password="<PASSWORD>")
     admin = get_user_model().objects.create(
         email="<admin_EMAIL>", password="<admin_PASSWORD>", is_staff=True
@@ -49,23 +50,22 @@ def make_test_db():
     client.force_authenticate(user=user)
     expected_return_date = timezone_today() + timedelta(days=1)
     payload = {
-        "borrow_date": timezone_today().strftime("%Y-%m-%d"),
         "expected_return_date": expected_return_date.strftime("%Y-%m-%d"),
         "book": book_1.id,
-        "user": user.id,
     }
     client.post(URL_CREATE_BORROWING, data=payload)
+
     client.force_authenticate(user=admin)
-    payload["book"] = (book_2.id,)
-    payload["user"] = (admin.id,)
+    payload["book"] = book_2.id
     client.post(URL_CREATE_BORROWING, data=payload)
+    post_save.connect(borrowing_created, sender=Borrowing)
     return user, admin, book_1, book_2
 
 
 class UnauthenticatedTestCase(APITestCase):
     def setUp(self):
-        self.client = APIClient()
         make_test_db()
+        self.client = APIClient()
 
     def test_should_not_show_payments(self):
         response = self.client.get(URL_PAYMENT_LIST)
@@ -137,6 +137,7 @@ class AdminUserTestCase(APITestCase):
 
 class CreateStripeSession(APITestCase):
     def setUp(self):
+        post_save.disconnect(borrowing_created, sender=Borrowing)
         user = get_user_model().objects.create_user(
             email="<EMAIL>", password="<PASSWORD>"
         )
@@ -156,11 +157,15 @@ class CreateStripeSession(APITestCase):
         self.amount = Decimal("10.00")
         self.payments_type = "PAYMENT"
 
+    @classmethod
+    def tearDownClass(cls):
+        post_save.connect(borrowing_created, sender=Borrowing)
+        super().tearDownClass()
+
     @mock.patch("payment.utils.create_payment")
     @mock.patch("payment.utils.stripe.checkout.Session.create")
     def test_should_calling_functions(self, mock_create_session, mock_create_payment):
         """Test that stripe.checkout.Session.create is called, and create_payment is called with correct arguments"""
-        # Створюємо підроблений session
         mock_session = MagicMock()
         mock_session.id = "test_session_id"
         mock_session.url = "https://checkout.stripe.com/test_session"
@@ -252,7 +257,6 @@ class CompletePaymentTestCase(APITestCase):
 
     def test_payment_completed_correctly(self):
         session_id = self.payment.session_id
-        # book_inventory = self.payment.borrowing.book.inventory
         complete_payment(session_id=session_id)
         updated_payment = Payment.objects.get(session_id=session_id, id=self.payment.id)
         self.assertEqual(updated_payment.status, "COMPLETED")

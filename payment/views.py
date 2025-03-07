@@ -1,10 +1,9 @@
 import stripe
 from django.conf import settings
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render
 from rest_framework import generics, permissions
 from rest_framework.decorators import api_view
 
-# from books_rent_config import settings
 from payment.permissions import IsAdminOrOwner
 
 from payment.models import Payment

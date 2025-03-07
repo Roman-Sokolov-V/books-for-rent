@@ -25,6 +25,9 @@ class BorrowingSerializer(serializers.ModelSerializer):
             actual_return_date=data.get("actual_return_date"),
             error=serializers.ValidationError
         )
+        user = self.context["request"].user
+        if Borrowing.objects.filter(user=user, book=data["book"], actual_return_date__isnull=True).exists():
+            raise serializers.ValidationError("The book is already borrowed")
         return data
 
     def create(self, validated_data):
@@ -40,13 +43,6 @@ class BorrowingSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(f"Sorry this book is not available now, we expect that it book will be available on {earliest_return.expected_return_date}")
             else:
                 raise serializers.ValidationError("Sorry this book is not available now.")
-            ####################
-        # with transaction.atomic():
-        #     book.inventory -= 1
-        #     book.save()
-        #     borrowing = super(BorrowingSerializer, self).create(validated_data)
-        # return borrowing
-            ##################
         with transaction.atomic():
             Book.objects.filter(pk=book_id).update(inventory=F("inventory") - 1)
             borrowing = super(BorrowingSerializer, self).create(validated_data)
