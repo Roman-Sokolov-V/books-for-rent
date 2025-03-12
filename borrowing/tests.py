@@ -42,8 +42,12 @@ def sample_bd():
     users = get_user_model().objects.bulk_create(
         [
             get_user_model()(email="user@example.com", password="password"),
-            get_user_model()(email="another@example.com", password="another_password"),
-            get_user_model()(email="admin@example.com", password="admin_password"),
+            get_user_model()(
+                email="another@example.com", password="another_password"
+            ),
+            get_user_model()(
+                email="admin@example.com", password="admin_password"
+            ),
         ]
     )
     auth_user, another_user, admin = users
@@ -176,11 +180,16 @@ class Authenticated(TestCase):
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             self.assertEqual(response.data, serializer.data)
 
-
     @mock.patch("borrowing.views.create_stripe_session")
-    def test_authenticated_user_can_create_borrowing(self, mock_session_create):
-        mock_session_create.return_value = Response({"session_id": "test_session_123"}, status=200)
-        auth_user = get_user_model().objects.create_user(email="<EMAIL>", password="<PASSWORD>")
+    def test_authenticated_user_can_create_borrowing(
+        self, mock_session_create
+    ):
+        mock_session_create.return_value = Response(
+            {"session_id": "test_session_123"}, status=200
+        )
+        auth_user = get_user_model().objects.create_user(
+            email="<EMAIL>", password="<PASSWORD>"
+        )
         book = sample_book()
         self.client.force_authenticate(user=auth_user)
         expected_return_date = timezone_today() + timedelta(days=10)
@@ -194,11 +203,17 @@ class Authenticated(TestCase):
         self.assertEqual(created_borrowing.user, auth_user)
         self.assertEqual(created_borrowing.book.id, payload["book"])
         self.assertEqual(created_borrowing.borrow_date, date.today())
-        self.assertEqual(created_borrowing.expected_return_date, expected_return_date)
+        self.assertEqual(
+            created_borrowing.expected_return_date, expected_return_date
+        )
         self.assertEqual(created_borrowing.actual_return_date, None)
-        amount = (created_borrowing.expected_return_date - created_borrowing.borrow_date).days * book.daily_fee
-        mock_session_create.assert_called_once_with(borrowing=created_borrowing, amount=amount, payments_type="PAYMENT")
-
+        amount = (
+            created_borrowing.expected_return_date
+            - created_borrowing.borrow_date
+        ).days * book.daily_fee
+        mock_session_create.assert_called_once_with(
+            borrowing=created_borrowing, amount=amount, payments_type="PAYMENT"
+        )
 
     def test_should_not_create_with_invalid_data(self):
         book = sample_book()
@@ -206,7 +221,9 @@ class Authenticated(TestCase):
             email="some@email.com", password="somepassword"
         )
         self.client.force_authenticate(user=user)
-        expected_return_date = (date.today() - timedelta(days=1)).strftime("%Y-%m-%d")
+        expected_return_date = (date.today() - timedelta(days=1)).strftime(
+            "%Y-%m-%d"
+        )
         payload = {
             "expected_return_date": expected_return_date,
             "book": book.id,
@@ -214,7 +231,9 @@ class Authenticated(TestCase):
         response = self.client.post(URL_BORROWING, data=payload)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-        expected_return_date = (date.today() + timedelta(days=1)).strftime("%Y-%m-%d")
+        expected_return_date = (date.today() + timedelta(days=1)).strftime(
+            "%Y-%m-%d"
+        )
         payload = {
             "expected_return_date": expected_return_date,
             "book": book.id + 1,
@@ -233,7 +252,9 @@ class Authenticated(TestCase):
         #     admin_borrow,
         # ) = sample_bd()
         book = sample_book()
-        auth_user = get_user_model().objects.create_user(email="<EMAIL>", password="<PASSWORD>")
+        auth_user = get_user_model().objects.create_user(
+            email="<EMAIL>", password="<PASSWORD>"
+        )
         book_inventory = book.inventory
         self.client.force_authenticate(user=auth_user)
         expected_return_date = timezone_today() + timedelta(days=10)
@@ -271,7 +292,9 @@ class Authenticated(TestCase):
         user = get_user_model().objects.create_user(
             email="some@email.com", password="some_password"
         )
-        expected_return_date = (date.today() + timedelta(days=1)).strftime("%Y-%m-%d")
+        expected_return_date = (date.today() + timedelta(days=1)).strftime(
+            "%Y-%m-%d"
+        )
         borrowing = Borrowing.objects.create(
             book=book, user=user, expected_return_date=expected_return_date
         )
@@ -280,4 +303,3 @@ class Authenticated(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         response = self.client.post(f"{URL_BORROWING}{borrowing.id}/return/")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        ##Повертає той что брав, чи адмін, дата повернення сьогодні чи обирати

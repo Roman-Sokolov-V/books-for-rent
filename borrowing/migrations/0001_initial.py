@@ -29,11 +29,15 @@ class Migration(migrations.Migration):
                 ),
                 ("borrow_date", models.DateField(auto_now_add=True)),
                 ("expected_return_date", models.DateField()),
-                ("actual_return_date", models.DateField(blank=True, null=True)),
+                (
+                    "actual_return_date",
+                    models.DateField(blank=True, null=True),
+                ),
                 (
                     "book",
                     models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="book.book"
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="book.book",
                     ),
                 ),
                 (
@@ -49,14 +53,18 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="borrowing",
             constraint=models.CheckConstraint(
-                check=models.Q(("expected_return_date__gte", models.F("borrow_date"))),
+                check=models.Q(
+                    ("expected_return_date__gte", models.F("borrow_date"))
+                ),
                 name="borrowing_date_must_be_before_expected_return_date",
             ),
         ),
         migrations.AddConstraint(
             model_name="borrowing",
             constraint=models.CheckConstraint(
-                check=models.Q(("actual_return_date__gte", models.F("borrow_date"))),
+                check=models.Q(
+                    ("actual_return_date__gte", models.F("borrow_date"))
+                ),
                 name="borrowing_date_must_be_before_actual_return_date",
             ),
         ),

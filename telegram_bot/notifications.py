@@ -16,8 +16,9 @@ async def send_created(telegram_id: int, borrowing: Borrowing = None) -> None:
     await bot.send_message(
         telegram_id,
         f"You rented a {borrowing.book.title} on {borrowing.borrow_date},"
-        f" the cost of rental is $ {borrowing.book.daily_fee} a day, today accrued"
-        f" the cost of rolling {borrowing.book.daily_fee * rented_days} $",
+        f" the cost of rental is $ {borrowing.book.daily_fee} "
+        f"a day, today accrued the cost of rolling "
+        f"{borrowing.book.daily_fee * rented_days} $",
     )
     await bot.session.close()
 
@@ -26,10 +27,13 @@ def run_send_created(telegram_id: int, borrowing: Borrowing) -> None:
     asyncio.run(send_created(telegram_id, borrowing))
 
 
-async def message_expired(telegram_id: int, book_title: str, expired_days: int) -> None:
+async def message_expired(
+    telegram_id: int, book_title: str, expired_days: int
+) -> None:
     await bot.send_message(
         telegram_id,
-        f"Your rented book {book_title} is overdue for {expired_days} days, please return the book as soon as possible",
+        f"Your rented book {book_title} is overdue for {expired_days} "
+        f"days, please return the book as soon as possible",
     )
     await bot.session.close()
     print("Message (expired book) is sent")
@@ -42,7 +46,8 @@ async def message_no_expired(telegram_id: int) -> None:
 
 def run_messages_expired() -> None:
     borrowings = Borrowing.objects.filter(
-        expected_return_date__lte=timezone_today(), actual_return_date__isnull=True
+        expected_return_date__lte=timezone_today(),
+        actual_return_date__isnull=True,
     ).select_related("user", "book")
     for borrowing in borrowings:
         expired_days = (timezone_today() - borrowing.expected_return_date).days
@@ -59,14 +64,16 @@ def run_messages_expired() -> None:
             )
         else:
             print(
-                f"user {borrowing.user} - {borrowing.user.email}has not had telegram id yet"
+                f"user {borrowing.user} - {borrowing.user.email}"
+                f"has not had telegram id yet"
             )
 
     users = (
         get_user_model()
         .objects.prefetch_related("borrowings")
         .exclude(
-            telegram_id=None, borrowings__expected_return_date__lte=timezone_today()
+            telegram_id=None,
+            borrowings__expected_return_date__lte=timezone_today(),
         )
         .distinct()
     )

@@ -27,7 +27,8 @@ class PaymentListView(generics.ListAPIView):
 
     @extend_schema(
         description=(
-                "List all payments for staff, or only the user's payments for non-staff."
+            "List all payments for staff, or only the user's"
+            " payments for non-staff."
         )
     )
     def list(self, request, *args, **kwargs):
@@ -62,8 +63,11 @@ def my_webhook_view(request):
     event = None
 
     try:
-        event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, endpoint_secret
+        )
     except ValueError as e:
+        print("⚠️  Verification failed." + str(e))
         return HttpResponse(status=400)
     except stripe.error.SignatureVerificationError as e:
         print("⚠️  Webhook signature verification failed." + str(e))

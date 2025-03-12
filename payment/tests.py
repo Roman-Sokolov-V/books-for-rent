@@ -18,7 +18,11 @@ from borrowing.models import Borrowing
 from borrowing.signals import borrowing_created
 from payment.models import Payment
 from payment.serialisers import PaymentSerializer
-from payment.utils import create_stripe_session, create_payment, complete_payment
+from payment.utils import (
+    create_stripe_session,
+    create_payment,
+    complete_payment,
+)
 
 
 URL_PAYMENT_LIST = reverse("payments:payments-list")
@@ -28,7 +32,9 @@ URL_CREATE_BORROWING = reverse("borrowings:borrowings-list")
 
 def make_test_db():
     post_save.disconnect(borrowing_created, sender=Borrowing)
-    user = get_user_model().objects.create_user(email="<EMAIL>", password="<PASSWORD>")
+    user = get_user_model().objects.create_user(
+        email="<EMAIL>", password="<PASSWORD>"
+    )
     admin = get_user_model().objects.create(
         email="<admin_EMAIL>", password="<admin_PASSWORD>", is_staff=True
     )
@@ -164,8 +170,13 @@ class CreateStripeSession(APITestCase):
 
     @mock.patch("payment.utils.create_payment")
     @mock.patch("payment.utils.stripe.checkout.Session.create")
-    def test_should_calling_functions(self, mock_create_session, mock_create_payment):
-        """Test that stripe.checkout.Session.create is called, and create_payment is called with correct arguments"""
+    def test_should_calling_functions(
+        self, mock_create_session, mock_create_payment
+    ):
+        """
+        Test that stripe.checkout.Session.create is called, and create_payment
+        is called with correct arguments
+        """
         mock_session = MagicMock()
         mock_session.id = "test_session_id"
         mock_session.url = "https://checkout.stripe.com/test_session"
@@ -232,8 +243,13 @@ class CompletePaymentTestCase(APITestCase):
 
     @mock.patch("payment.views.complete_payment")
     @mock.patch("payment.views.stripe.Webhook.construct_event")
-    def test_webhook_is_calling(self, mock_construct_event, mock_complete_payment):
-        """Test that stripe.Webhook.construct_event is called, and complete_payment is called with correct arguments with correct data"""
+    def test_webhook_is_calling(
+        self, mock_construct_event, mock_complete_payment
+    ):
+        """
+        Test that stripe.Webhook.construct_event is called, and
+        complete_payment is called with correct arguments with correct data
+        """
         mock_event = MagicMock()
         mock_event = {
             "type": "checkout.session.completed",
@@ -247,7 +263,7 @@ class CompletePaymentTestCase(APITestCase):
             reverse("payments:payments-webhook"),
             data=fake_payload,
             content_type="application/json",
-            **{"HTTP_STRIPE_SIGNATURE": fake_signature}
+            **{"HTTP_STRIPE_SIGNATURE": fake_signature},
         )
         mock_construct_event.assert_called_once()
         mock_complete_payment.assert_called_once_with(
@@ -258,7 +274,9 @@ class CompletePaymentTestCase(APITestCase):
     def test_payment_completed_correctly(self):
         session_id = self.payment.session_id
         complete_payment(session_id=session_id)
-        updated_payment = Payment.objects.get(session_id=session_id, id=self.payment.id)
+        updated_payment = Payment.objects.get(
+            session_id=session_id, id=self.payment.id
+        )
         self.assertEqual(updated_payment.status, "COMPLETED")
 
     def test_if_fine_payment_book_inventory_is_updated(self):

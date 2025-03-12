@@ -191,7 +191,8 @@ Q_CLUSTER = {
     },
 }
 
-##Stripe
+# Stripe
+
 STRIPE_PUBLISH_KEY = getenv("STRIPE_PUBLISH_KEY")
 
 STRIPE_SECRET_KEY = getenv("STRIPE_SECRET_KEY")

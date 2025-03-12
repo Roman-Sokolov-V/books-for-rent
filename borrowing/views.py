@@ -2,7 +2,12 @@ from django.db import transaction
 from django.db.models import F
 from django.views.generic.dates import timezone_today
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse, OpenApiExample
+from drf_spectacular.utils import (
+    extend_schema,
+    OpenApiParameter,
+    OpenApiResponse,
+    OpenApiExample,
+)
 from rest_framework import viewsets, generics, mixins, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -21,6 +26,7 @@ from payment.utils import create_stripe_session
 
 FINE_MULTIPLIER = 2
 
+
 class BorrowingViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
@@ -28,6 +34,7 @@ class BorrowingViewSet(
     viewsets.GenericViewSet,
 ):
     """Borrowing Create, List, Retrieve viewset"""
+
     serializer_class = BorrowingSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -54,7 +61,10 @@ class BorrowingViewSet(
         return queryset
 
     def perform_create(self, serializer):
-        """Assigns the current request user to the borrowing instance, saves it, and returns the instance."""
+        """
+        Assigns the current request user to the borrowing instance, saves it,
+        and returns the instance.
+        """
         return serializer.save(user=self.request.user)
 
     @extend_schema(
@@ -65,24 +75,30 @@ class BorrowingViewSet(
                 examples=[
                     OpenApiExample(
                         "Redirect to Stripe",
-                        value={"url": "https://checkout.stripe.com/pay/cs_test_..."},
+                        value={
+                            "url": "https://checkout.stripe.com/pay/cs_test_.."
+                        },
                     )
                 ],
             ),
         },
         description=(
-                "Creates a new borrowing instance and initiates a Stripe Checkout session. "
-                "Creates a new payment instance. Returns a redirect URL to the payment page."
-        )
+            "Creates a new borrowing instance and initiates a Stripe Checkout "
+            "session. Creates a new payment instance. Returns a redirect URL "
+            "to the payment page."
+        ),
     )
     def create(self, request, *args, **kwargs):
         """When create borrowing call create_stripe_session"""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         borrowing = self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        amount = (borrowing.expected_return_date - borrowing.borrow_date).days * borrowing.book.daily_fee
-        return create_stripe_session(borrowing=borrowing, amount=amount, payments_type="PAYMENT")
+        amount = (
+            borrowing.expected_return_date - borrowing.borrow_date
+        ).days * borrowing.book.daily_fee
+        return create_stripe_session(
+            borrowing=borrowing, amount=amount, payments_type="PAYMENT"
+        )
 
     def get_serializer_class(self):
         if self.action == "return_book":
@@ -92,18 +108,19 @@ class BorrowingViewSet(
         return BorrowingSerializer
 
     @extend_schema(
-        description="Return a borrowed book, update its inventory, and handle late return fines.",
+        description="Return a borrowed book, update its inventory, "
+                    "and handle late return fines.",
         parameters=[
             OpenApiParameter(
                 name="borrow_id",
                 type=OpenApiTypes.INT,
-                description="ID of the borrowing instance"
+                description="ID of the borrowing instance",
             ),
         ],
         responses={
-                      200: BorrowingSerializer,
-                      400: "Bad Request (Validation Errors)",
-                  }
+            200: BorrowingSerializer,
+            400: "Bad Request (Validation Errors)",
+        },
     )
     @action(detail=True, methods=["post"], url_path="return")
     def return_book(self, request, pk=None):
@@ -111,16 +128,29 @@ class BorrowingViewSet(
         borrowing = self.get_object()
         serializer = self.get_serializer(borrowing, data=request.data)
         if serializer.is_valid():
-            if timezone_today() > borrowing.expected_return_date and Payment.objects.filter(borrowing=borrowing, type="FINE", status="PAID").exists() == False:
-                amount = (timezone_today() - borrowing.expected_return_date).days * borrowing.book.daily_fee * FINE_MULTIPLIER
-                return create_stripe_session(borrowing=borrowing, amount=amount, payments_type="FINE")
+            if (
+                timezone_today() > borrowing.expected_return_date
+                and not Payment.objects.filter(
+                    borrowing=borrowing, type="FINE", status="PAID"
+                ).exists()
+            ):
+                amount = (
+                    (timezone_today() - borrowing.expected_return_date).days
+                    * borrowing.book.daily_fee
+                    * FINE_MULTIPLIER
+                )
+                return create_stripe_session(
+                    borrowing=borrowing, amount=amount, payments_type="FINE"
+                )
 
             with transaction.atomic():
                 borrowing.actual_return_date = timezone_today()
                 borrowing.save()
                 book_id = borrowing.book.id
                 serializer.save()
-                Book.objects.filter(pk=book_id).update(inventory=F("inventory") + 1)
+                Book.objects.filter(pk=book_id).update(
+                    inventory=F("inventory") + 1
+                )
                 return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -129,7 +159,8 @@ class BorrowingViewSet(
             OpenApiParameter(
                 "user_id",
                 type=OpenApiTypes.INT,
-                description="Filter by user ID (available only for staff users).",
+                description="Filter by user ID "
+                            "(available only for staff users).",
                 location=OpenApiParameter.QUERY,
                 required=False,
             ),
@@ -138,14 +169,12 @@ class BorrowingViewSet(
                 type=OpenApiTypes.STR,
                 enum=["true", "1", "yes", "false", "0", "no"],
                 description="Filter by active status. Acceptable values: "
-                            "`true, 1, yes` (for active), `false, 0, no` (for inactive).",
+                "`true, 1, yes` (for active), `false, 0, no` (for inactive).",
                 location=OpenApiParameter.QUERY,
                 required=False,
-            )
+            ),
         ]
     )
     def list(self, request, *args, **kwargs):
         """Get list of borrowings"""
         return super().list(request, *args, **kwargs)
-
-

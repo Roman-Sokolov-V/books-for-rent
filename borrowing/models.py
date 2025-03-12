@@ -12,7 +12,9 @@ class Borrowing(models.Model):
     expected_return_date = models.DateField()
     actual_return_date = models.DateField(null=True, blank=True)
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
-    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="borrowings")
+    user = models.ForeignKey(
+        get_user_model(), on_delete=models.CASCADE, related_name="borrowings"
+    )
 
     class Meta:
         constraints = [
@@ -28,13 +30,17 @@ class Borrowing(models.Model):
                 fields=["user", "book"],
                 condition=Q(actual_return_date__isnull=True),
                 name="unique_active_borrowing",
-            )
+            ),
         ]
+
     def __str__(self):
-        return f"{self.book.title} expected return date {self.expected_return_date}"
+        return (f"{self.book.title} expected return date "
+                f"{self.expected_return_date}")
 
     @staticmethod
-    def validate_dates(borrow_date, expected_return_date, actual_return_date, error):
+    def validate_dates(
+        borrow_date, expected_return_date, actual_return_date, error
+    ):
         if borrow_date > expected_return_date:
             raise error("Borrowing date must be before expected return date")
         if actual_return_date is not None and borrow_date > actual_return_date:
@@ -45,5 +51,5 @@ class Borrowing(models.Model):
             borrow_date=self.borrow_date,
             expected_return_date=self.expected_return_date,
             actual_return_date=self.actual_return_date,
-            error=ValidationError
+            error=ValidationError,
         )

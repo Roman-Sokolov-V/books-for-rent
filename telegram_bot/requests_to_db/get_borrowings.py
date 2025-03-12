@@ -17,7 +17,10 @@ def get_borrowings(user_id: int, is_overdue: bool = False) -> list[dict]:
             )
             .select_related("user", "book")
             .values(
-                "book__title", "book__daily_fee", "borrow_date", "expected_return_date"
+                "book__title",
+                "book__daily_fee",
+                "borrow_date",
+                "expected_return_date",
             )
             .order_by("borrow_date")
         )
@@ -26,6 +29,11 @@ def get_borrowings(user_id: int, is_overdue: bool = False) -> list[dict]:
             user__telegram_id=user_id, actual_return_date__isnull=True
         )
         .select_related("user", "book")
-        .values("book__title", "book__daily_fee", "borrow_date", "expected_return_date")
+        .values(
+            "book__title",
+            "book__daily_fee",
+            "borrow_date",
+            "expected_return_date",
+        )
         .order_by("borrow_date")
     )

@@ -28,7 +28,9 @@ class UserManagerTests(TestCase):
     def test_create_superuser_with_valid_email(self):
         email = "admin@example.com"
         password = "adminpassword123"
-        superuser = User.objects.create_superuser(email=email, password=password)
+        superuser = User.objects.create_superuser(
+            email=email, password=password
+        )
 
         self.assertEqual(superuser.email, email)
         self.assertTrue(superuser.check_password(password))
@@ -40,12 +42,16 @@ class UserManagerTests(TestCase):
             User.objects.create_superuser(
                 email="admin@example.com", password="password", is_staff=False
             )
-        self.assertEqual(str(context.exception), "Superuser must have is_staff=True.")
+        self.assertEqual(
+            str(context.exception), "Superuser must have is_staff=True."
+        )
 
     def test_create_superuser_invalid_is_superuser(self):
         with self.assertRaises(ValueError) as context:
             User.objects.create_superuser(
-                email="admin@example.com", password="password", is_superuser=False
+                email="admin@example.com",
+                password="password",
+                is_superuser=False,
             )
         self.assertEqual(
             str(context.exception), "Superuser must have is_superuser=True."
@@ -77,7 +83,9 @@ class UsersMeAPIEndpointTests(TestCase):
         self.assertEqual(response.data["email"], user.email)
         user_from_db = get_user_model().objects.get(id=user.id)
         self.assertNotEqual(user.password, user_data["password"])
-        self.assertTrue(check_password(user_data["password"], user_from_db.password))
+        self.assertTrue(
+            check_password(user_data["password"], user_from_db.password)
+        )
 
     def test_aunthenticated_can_update(self):
         user_data = {
@@ -116,4 +124,6 @@ class UsersAPIEndpointTests(TestCase):
         self.assertEqual(response.data["email"], user_data["email"])
         user_from_db = get_user_model().objects.get(id=user.id)
         self.assertNotEqual(user.password, user_data["password"])
-        self.assertTrue(check_password(user_data["password"], user_from_db.password))
+        self.assertTrue(
+            check_password(user_data["password"], user_from_db.password)
+        )

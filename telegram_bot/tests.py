@@ -26,7 +26,11 @@ from telegram_bot.requests_to_db.get_borrowings import get_borrowings
 from user.models import User
 from telegram_bot.handlers import start_handler
 from telegram_bot.bot import main
-from telegram_bot.handlers.start_handler import cmd_start, stage_two, stage_three
+from telegram_bot.handlers.start_handler import (
+    cmd_start,
+    stage_two,
+    stage_three,
+)
 from telegram_bot.keyboards.get_borrowings import (
     get_borrowings_keyboard,
     borrowings_keyboard,
@@ -52,7 +56,9 @@ class TestTelegramBot(unittest.IsolatedAsyncioTestCase):
         """
         self.bot = AsyncMock(spec=Bot)
         self.dp = Dispatcher()
-        self.dp.include_router(start_handler.router)  # Підключаємо роутер обробників
+        self.dp.include_router(
+            start_handler.router
+        )  # Підключаємо роутер обробників
 
     @patch("telegram_bot.bot.Bot", new_callable=AsyncMock)
     @patch("telegram_bot.bot.Dispatcher", new_callable=AsyncMock)
@@ -69,7 +75,9 @@ class TestTelegramBot(unittest.IsolatedAsyncioTestCase):
             await main()
             task = asyncio.create_task(run_main())
             await asyncio.sleep(0.1)
-            mock_bot.delete_webhook.assert_called_once_with(drop_pending_updates=True)
+            mock_bot.delete_webhook.assert_called_once_with(
+                drop_pending_updates=True
+            )
             mock_dp.start_polling.assert_called_once_with(mock_bot)
             await self.dp.stop_polling()
             task.cancel()
@@ -80,6 +88,7 @@ class TestTelegramBot(unittest.IsolatedAsyncioTestCase):
 
 class TestStartHandler(unittest.IsolatedAsyncioTestCase):
     """Tests for handlers"""
+
     async def asyncSetUp(self):
         self.message = MagicMock()
         self.message.from_user.id = 123456
@@ -90,7 +99,8 @@ class TestStartHandler(unittest.IsolatedAsyncioTestCase):
 
     @patch("telegram_bot.handlers.start_handler.get_borrowings_keyboard")
     @patch(
-        "telegram_bot.handlers.start_handler.check_user_sync", new_callable=AsyncMock
+        "telegram_bot.handlers.start_handler.check_user_sync",
+        new_callable=AsyncMock,
     )
     async def test_user_exists(
         self, mock_check_user_sync, mock_get_borrowings_keyboard
@@ -102,12 +112,13 @@ class TestStartHandler(unittest.IsolatedAsyncioTestCase):
         await cmd_start(self.message, self.state)
 
         self.message.answer.assert_called_once_with(
-            f"Hi John, pick your action", reply_markup="keyboard_mock"
+            "Hi John, pick your action", reply_markup="keyboard_mock"
         )
         self.state.set_state.assert_not_called()
 
     @patch(
-        "telegram_bot.handlers.start_handler.check_user_sync", new_callable=AsyncMock
+        "telegram_bot.handlers.start_handler.check_user_sync",
+        new_callable=AsyncMock,
     )
     async def test_user_not_exists(self, mock_check_user_sync):
         """We test when the user is not registered"""
@@ -116,8 +127,9 @@ class TestStartHandler(unittest.IsolatedAsyncioTestCase):
         await cmd_start(self.message, self.state)
 
         self.message.answer.assert_any_call(
-            f"Hi John, this is a bot for managing books in the library. Please enter your email and Password"
-            f" with which you registered in serve are your books to synchronize accounts"
+            "Hi John, this is a bot for managing books in the library. "
+            "Please enter your email and Password with which you registered "
+            "in serve are your books to synchronize accounts"
         )
         self.message.answer.assert_any_call("Input email")
         self.state.set_state.assert_called_once_with(Reg.email)
@@ -147,7 +159,8 @@ class TestStartHandler(unittest.IsolatedAsyncioTestCase):
         self.state.update_data.assert_called_once_with(password="password123")
         self.state.clear.assert_called_once()
         self.message.answer.assert_called_once_with(
-            "accounts have synchronize successfully, please push '/start' again"
+            "accounts have synchronize successfully, "
+            "please push '/start' again"
         )
 
     @patch(
@@ -162,15 +175,19 @@ class TestStartHandler(unittest.IsolatedAsyncioTestCase):
 
         await stage_three(self.message, self.state)
 
-        self.state.update_data.assert_called_once_with(password="wrong_password")
+        self.state.update_data.assert_called_once_with(
+            password="wrong_password"
+        )
         self.state.clear.assert_called_once()
         self.message.answer.assert_called_once_with(
-            "You input wrong email or/and password, please push '/start' and try again"
+            "You input wrong email or/and password, please push '/start'"
+            " and try again"
         )
 
 
 class TestKeyboards(unittest.TestCase):
     """Tests for Keyboards functions."""
+
     @patch("telegram_bot.keyboards.get_borrowings.ReplyKeyboardMarkup")
     def test_get_borrowings_keyboard(self, mock_reply_keyboard):
         get_borrowings_keyboard()
@@ -182,14 +199,24 @@ class TestKeyboards(unittest.TestCase):
 
 class TestAccountSync(TestCase):
     """Tests account synchronisation"""
+
     def setUp(self):
         self.user_1 = get_user_model().objects.create_user(
             email="<EMAIL>", password="<PASSWORD>", telegram_id=1234
         )
         self.correct_data = {"email": "<CORRECT>", "password": "<CORRECT>"}
-        self.incorrect_data_1 = {"email": "<CORRECT>", "password": "<INCORRECT>"}
-        self.incorrect_data_2 = {"email": "<INCORRECT>", "password": "<CORRECT>"}
-        self.incorrect_data_3 = {"email": "<INCORRECT>", "password": "<INCORRECT>"}
+        self.incorrect_data_1 = {
+            "email": "<CORRECT>",
+            "password": "<INCORRECT>",
+        }
+        self.incorrect_data_2 = {
+            "email": "<INCORRECT>",
+            "password": "<CORRECT>",
+        }
+        self.incorrect_data_3 = {
+            "email": "<INCORRECT>",
+            "password": "<INCORRECT>",
+        }
 
     @staticmethod
     async def get_user_async(user_id: int) -> User:
@@ -197,7 +224,9 @@ class TestAccountSync(TestCase):
 
     @staticmethod
     async def create_user_async(data: dict) -> None:
-        return await sync_to_async(get_user_model().objects.create_user)(**data)
+        return await sync_to_async(get_user_model().objects.create_user)(
+            **data
+        )
 
     @staticmethod
     async def check_telegram_id(telegram_id: int) -> bool:
@@ -207,21 +236,26 @@ class TestAccountSync(TestCase):
 
     async def test_return_true_if_telegram_id_exist(self):
         """
-        Tests if True is returned when a user with the given telegram_id exists in the database.
+        Tests if True is returned when a user with the given telegram_id exists
+        in the database.
         """
         result = await check_user_sync(self.user_1.telegram_id)
         self.assertTrue(result)
 
     async def test_return_false_if_not_exist(self):
         """
-        Tests if False is returned when a user with the given telegram_id does not exist in the database.
+        Tests if False is returned when a user with the given telegram_id
+        does not exist in the database.
         """
         result = await check_user_sync(self.user_1.telegram_id + 100)
         self.assertFalse(result)
 
-    async def test_add_telegram_id_and_return_true_if_email_and_password_correct(self):
+    async def test_add_telegram_id_and_return_true_if_credentials_correct(
+        self,
+    ):
         """
-        Tests if telegram_id is correctly added to the user when the email and password are correct,
+        Tests if telegram_id is correctly added to the user when
+        the email and password are correct,
         and if True is returned after synchronizing accounts.
         """
         user = await self.create_user_async(self.correct_data)
@@ -235,8 +269,9 @@ class TestAccountSync(TestCase):
 
     async def test_return_false_if_email_and_password_incorrect(self):
         """
-        Tests if False is returned when the provided email and/or password are incorrect,
-        and ensures that the telegram_id of the user does not change.
+        Tests if False is returned when the provided email and/or password
+        are incorrect, and ensures that the telegram_id of the user does not
+        change.
         """
         telegram_id = 12345
         result = await try_synchronize_accounts(
@@ -305,14 +340,23 @@ def sample_bd():
             ),
         ]
     )
-    borrow_user_1, overdue_borrow_user_1, overdue_borrow_user_2, borrow_user_2 = borrows
+    (
+        borrow_user_1,
+        overdue_borrow_user_1,
+        overdue_borrow_user_2,
+        borrow_user_2,
+    ) = borrows
 
     overdue_borrow_user_1.borrow_date = timezone_today() - timedelta(days=10)
-    overdue_borrow_user_1.expected_return_date = timezone_today() - timedelta(days=2)
+    overdue_borrow_user_1.expected_return_date = timezone_today() - timedelta(
+        days=2
+    )
     overdue_borrow_user_1.save()
 
     overdue_borrow_user_2.borrow_date = timezone_today() - timedelta(days=10)
-    overdue_borrow_user_2.expected_return_date = timezone_today() - timedelta(days=3)
+    overdue_borrow_user_2.expected_return_date = timezone_today() - timedelta(
+        days=3
+    )
     overdue_borrow_user_2.save()
 
     post_save.connect(borrowing_created, sender=Borrowing)
@@ -330,6 +374,7 @@ def sample_bd():
 
 class TestGetBorrowings(TestCase):
     """Tests for requests_to_db.get_borrowings"""
+
     def setUp(self):
         (
             self.user,
@@ -360,16 +405,26 @@ class TestGetBorrowings(TestCase):
         return True
 
     async def test_list_all_active_borrowings(self):
-        """Test that the function returns a list of all active borrowings for the given user."""
+        """
+        Test that the function returns a list of all active borrowings
+         for the given user.
+        """
 
-        result = await get_borrowings(user_id=self.user.telegram_id, is_overdue=False)
+        result = await get_borrowings(
+            user_id=self.user.telegram_id, is_overdue=False
+        )
         self.assertIsInstance(result, list)
         self.assertEqual(2, len(result))
         self.assertTrue(self.check_is_user(result, self.user))
 
     async def test_list_overdue_borrowings(self):
-        """Test that the function returns a list of overdue borrowings for the given user."""
-        result = await get_borrowings(user_id=self.user.telegram_id, is_overdue=True)
+        """
+        Test that the function returns a list of overdue borrowings
+         for the given user.
+         """
+        result = await get_borrowings(
+            user_id=self.user.telegram_id, is_overdue=True
+        )
         self.assertIsInstance(result, list)
         self.assertEqual(1, len(result))
         self.assertTrue(self.check_is_user(result, self.user))
@@ -378,6 +433,7 @@ class TestGetBorrowings(TestCase):
 
 class TestNotifications(TestCase):
     """Tests for notifications"""
+
     def setUp(self):
         (
             self.user,
@@ -390,18 +446,26 @@ class TestNotifications(TestCase):
             self.book_2,
         ) = sample_bd()
 
-    @patch("telegram_bot.notifications.bot.session.close", new_callable=AsyncMock)
-    @patch("telegram_bot.notifications.bot.send_message", new_callable=AsyncMock)
+    @patch(
+        "telegram_bot.notifications.bot.session.close", new_callable=AsyncMock
+    )
+    @patch(
+        "telegram_bot.notifications.bot.send_message", new_callable=AsyncMock
+    )
     async def test_send_created(self, mock_send_message, mock_close):
-        result = await send_created(
+        await send_created(
             telegram_id=self.user.telegram_id, borrowing=self.borrowing
         )
-
+        amount = (
+            self.borrowing.book.daily_fee
+            * (timezone_today() - self.borrowing.borrow_date).days
+        )
         expected_message = (
-            f"You rented a {self.borrowing.book.title} on {self.borrowing.borrow_date}, "
+            f"You rented a "
+            f"{self.borrowing.book.title} on {self.borrowing.borrow_date}, "
             f"the cost of rental is $ {self.borrowing.book.daily_fee} a day, "
             f"today accrued the cost of rolling"
-            f" {self.borrowing.book.daily_fee * (timezone_today() - self.borrowing.borrow_date).days} $"
+            f" {amount} $"
         )
         mock_send_message.assert_called_once_with(
             self.user.telegram_id, expected_message
@@ -414,8 +478,12 @@ class TestNotifications(TestCase):
         run_send_created(telegram_id, self.borrowing)
         mock_send_created.assert_called_once_with(telegram_id, self.borrowing)
 
-    @patch("telegram_bot.notifications.bot.session.close", new_callable=AsyncMock)
-    @patch("telegram_bot.notifications.bot.send_message", new_callable=AsyncMock)
+    @patch(
+        "telegram_bot.notifications.bot.session.close", new_callable=AsyncMock
+    )
+    @patch(
+        "telegram_bot.notifications.bot.send_message", new_callable=AsyncMock
+    )
     async def test_run_messages_expired(self, mock_send_message, mock_close):
         telegram_id = 123456
         expired_days = 3
@@ -429,21 +497,35 @@ class TestNotifications(TestCase):
             f"{expired_days} days, please return the book as soon as possible"
         )
 
-        mock_send_message.assert_called_once_with(telegram_id, expected_message)
+        mock_send_message.assert_called_once_with(
+            telegram_id, expected_message
+        )
         mock_close.assert_called_once()
 
-    @patch("telegram_bot.notifications.bot.session.close", new_callable=AsyncMock)
-    @patch("telegram_bot.notifications.bot.send_message", new_callable=AsyncMock)
+    @patch(
+        "telegram_bot.notifications.bot.session.close", new_callable=AsyncMock
+    )
+    @patch(
+        "telegram_bot.notifications.bot.send_message", new_callable=AsyncMock
+    )
     async def test_message_no_expired(self, mock_send_message, mock_close):
         telegram_id = 123456
         expected_message = "No borrowings overdue today!"
         await message_no_expired(telegram_id=telegram_id)
-        mock_send_message.assert_called_once_with(telegram_id, expected_message)
+        mock_send_message.assert_called_once_with(
+            telegram_id, expected_message
+        )
         mock_close.assert_called_once()
 
-    @patch("telegram_bot.notifications.message_no_expired", new_callable=AsyncMock)
-    @patch("telegram_bot.notifications.message_expired", new_callable=AsyncMock)
-    def test_run_message_expired(self, mock_message_expired, mock_message_no_expired):
+    @patch(
+        "telegram_bot.notifications.message_no_expired", new_callable=AsyncMock
+    )
+    @patch(
+        "telegram_bot.notifications.message_expired", new_callable=AsyncMock
+    )
+    def test_run_message_expired(
+        self, mock_message_expired, mock_message_no_expired
+    ):
         telegram_id = 88888
         get_user_model().objects.create_user(
             email="<EMAIL_3>", password="<PASSWORD>", telegram_id=telegram_id

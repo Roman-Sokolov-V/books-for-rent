@@ -8,7 +8,8 @@ from rest_framework import status
 from book.models import Book
 from book.serializers import BookSerializer
 
-BOOK_URL = reverse('book:book-list')
+BOOK_URL = reverse("book:book-list")
+
 
 def sample_book(**params):
     """Create a sample book."""
@@ -17,7 +18,7 @@ def sample_book(**params):
         "author": "unknown",
         "cover": "soft",
         "inventory": 10,
-        "daily_fee": 5
+        "daily_fee": 5,
     }
     defaults.update(params)
     return Book.objects.create(**defaults)
@@ -32,14 +33,12 @@ class Unauthenticated(TestCase):
             "author": "test_author",
             "cover": "hard",
             "inventory": 10,
-            "daily_fee": 2
+            "daily_fee": 2,
         }
-
 
     def test_unautheticated_user_can_not_create_book(self):
         response = self.client.post(BOOK_URL, data=self.valid_data)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
 
     def test_unautheticated_user_can_list_books(self):
         response = self.client.get(BOOK_URL)
@@ -66,11 +65,10 @@ class Authenticated(TestCase):
             "author": "test_author",
             "cover": "hard",
             "inventory": 10,
-            "daily_fee": 2
+            "daily_fee": 2,
         }
         self.user = get_user_model().objects.create_user(
-            email="<EMAIL>",
-            password="<PASSWORD>"
+            email="<EMAIL>", password="<PASSWORD>"
         )
         self.client.force_authenticate(user=self.user)
 
@@ -102,11 +100,10 @@ class Is_Staff_user(TestCase):
             "author": "test_author",
             "cover": "hard",
             "inventory": 10,
-            "daily_fee": 2
+            "daily_fee": 2,
         }
         self.user = get_user_model().objects.create_superuser(
-            email="<EMAIL>",
-            password="<PASSWORD>"
+            email="<EMAIL>", password="<PASSWORD>"
         )
         self.client.force_authenticate(user=self.user)
 
@@ -118,7 +115,6 @@ class Is_Staff_user(TestCase):
             self.assertEqual(getattr(book, key), value)
         serializer = BookSerializer(book)
         self.assertEqual(response.data, serializer.data)
-
 
     def test_staff_user_can_list_books(self):
         sample_book()
