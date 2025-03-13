@@ -1,11 +1,10 @@
 from django.db import models
 
 
-
 class Book(models.Model):
     class Cover(models.TextChoices):
-        HARD = 'hard', 'Hardcover'
-        SOFT = 'soft', 'Softcover'
+        HARD = "hard", "Hardcover"
+        SOFT = "soft", "Softcover"
 
     title = models.CharField(max_length=100)
     author = models.CharField(max_length=100)
@@ -17,4 +16,6 @@ class Book(models.Model):
     daily_fee = models.DecimalField(max_digits=4, decimal_places=2)
 
     def __str__(self):
-        return f"{self.title}, (author {self.author}) daily fee: {self.daily_fee}"
+        return (
+            f"{self.title}, (author {self.author}) daily fee: {self.daily_fee}"
+        )

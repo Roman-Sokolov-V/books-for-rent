@@ -9,7 +9,9 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
+
 import os
+from os import getenv
 from pathlib import Path
 
 from datetime import timedelta
@@ -25,12 +27,12 @@ load_dotenv(BASE_DIR / ".env")
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-81+n_&%m-3+iupfchlmnll6*q_w2r%axc@qv=*_&15)0#lu!8b"
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG")
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "web", "web:8000"]
 
 
 # Application definition
@@ -50,7 +52,9 @@ INSTALLED_APPS = [
     "django_filters",
     "debug_toolbar",
     "telegram_bot",
-    'django_q',
+    "django_q",
+    "payment",
+    "drf_spectacular",
 ]
 
 MIDDLEWARE = [
@@ -85,16 +89,16 @@ TEMPLATES = [
 WSGI_APPLICATION = "books_rent_config.wsgi.application"
 
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("POSTGRES_DB"),
+        "USER": os.getenv("POSTGRES_USER"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+        "HOST": os.getenv("POSTGRES_HOST"),
+        "PORT": os.getenv("POSTGRES_PORT"),
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -143,7 +147,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-    #'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 
@@ -158,32 +162,45 @@ INTERNAL_IPS = [
     "127.0.0.1",
 ]
 
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 
 Q_CLUSTER = {
-    'name': 'myproject',
-    'workers': 8,
-    'recycle': 500,
-    'timeout': 60,
+    "name": "myproject",
+    "workers": 8,
+    "recycle": 500,
+    "timeout": 60,
     "max_attempts": 1,
     "clean_up": True,
     "cleanup_delay": 3600,
-    'compress': True,
-    'save_limit': 250,
-    'queue_limit': 500,
-    'cpu_affinity': 1,
-    'label': 'Django Q',
-    'orm': 'default',
-    'redis': {
-        'host': 'localhost',
-        'port': 6379,
-        'db': 0,
-        'password': None,
-        'socket_timeout': None,
-        'charset': 'utf-8',
-        'errors': 'strict',
-        'unix_socket_path': None
-    }
+    "compress": True,
+    "save_limit": 250,
+    "queue_limit": 500,
+    "cpu_affinity": 1,
+    "label": "Django Q",
+    "orm": "default",
+    "redis": {
+        "host": "localhost",
+        "port": 6379,
+        "db": 0,
+        "password": None,
+        "socket_timeout": None,
+        "charset": "utf-8",
+        "errors": "strict",
+        "unix_socket_path": None,
+    },
 }
-    #"broker": {"redis://127.0.0.1:6379",}
+
+# Stripe
+
+STRIPE_PUBLISH_KEY = getenv("STRIPE_PUBLISH_KEY")
+
+STRIPE_SECRET_KEY = getenv("STRIPE_SECRET_KEY")
+
+STRIPE_WEBHOOK_SECRET = getenv("STRIPE_WEBHOOK_SECRET")
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Book for rent API",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+}
