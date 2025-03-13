@@ -1,8 +1,12 @@
 from datetime import date, timedelta
+from unittest import mock
 
 from django.contrib.auth import get_user_model
+from django.db.models.signals import post_save
 from django.test import TestCase
 from django.core.exceptions import ValidationError
+from django.views.generic.dates import timezone_today
+from rest_framework.response import Response
 
 from rest_framework.reverse import reverse
 
@@ -13,6 +17,7 @@ from rest_framework import status
 from book.models import Book
 from borrowing.models import Borrowing
 from borrowing.serializers import BorrowingSerializer
+from borrowing.signals import borrowing_created
 
 URL_BORROWING = reverse("borrowings:borrowings-list")
 BOOK_DATA = {
@@ -26,18 +31,23 @@ BOOK_DATA = {
 
 def sample_book(**params):
     """Create a sample book."""
-    defaults = BOOK_DATA
+    defaults = BOOK_DATA.copy()
     defaults.update(params)
     return Book.objects.create(**defaults)
 
 
 def sample_bd():
+    post_save.disconnect(borrowing_created, sender=Borrowing)
     book = sample_book()
     users = get_user_model().objects.bulk_create(
         [
             get_user_model()(email="user@example.com", password="password"),
-            get_user_model()(email="another@example.com", password="another_password"),
-            get_user_model()(email="admin@example.com", password="admin_password"),
+            get_user_model()(
+                email="another@example.com", password="another_password"
+            ),
+            get_user_model()(
+                email="admin@example.com", password="admin_password"
+            ),
         ]
     )
     auth_user, another_user, admin = users
@@ -45,17 +55,17 @@ def sample_bd():
     borrows = Borrowing.objects.bulk_create(
         [
             Borrowing(
-                expected_return_date=date.today() + timedelta(days=1),
+                expected_return_date=timezone_today() + timedelta(days=1),
                 book=book,
                 user=auth_user,
             ),
             Borrowing(
-                expected_return_date=date.today() + timedelta(days=1),
+                expected_return_date=timezone_today() + timedelta(days=1),
                 book=book,
                 user=another_user,
             ),
             Borrowing(
-                expected_return_date=date.today() + timedelta(days=1),
+                expected_return_date=timezone_today() + timedelta(days=1),
                 book=book,
                 user=admin,
             ),
@@ -63,6 +73,7 @@ def sample_bd():
     )
 
     user_borrow, another_user_borrow, admin_borrow = borrows
+    post_save.connect(borrowing_created, sender=Borrowing)
     return (
         book,
         auth_user,
@@ -98,6 +109,12 @@ class Unauthenticated(TestCase):
 class Authenticated(TestCase):
     def setUp(self):
         self.client = APIClient()
+        post_save.disconnect(borrowing_created, sender=Borrowing)
+
+    @classmethod
+    def tearDownClass(cls):
+        post_save.connect(borrowing_created, sender=Borrowing)
+        super().tearDownClass()
 
     def test_authenticated_user_can_list_only_own_borrowings(self):
         (
@@ -113,6 +130,7 @@ class Authenticated(TestCase):
         response = self.client.get(URL_BORROWING)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         for borrow in response.data:
+            print(borrow["user"])
             self.assertEqual(borrow["user"], auth_user.id)
 
     def test_filter_is_active(self):
@@ -162,33 +180,40 @@ class Authenticated(TestCase):
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             self.assertEqual(response.data, serializer.data)
 
-    def test_authenticated_user_can_create_borrowing(self):
-        (
-            book,
-            auth_user,
-            another_user,
-            admin,
-            user_borrow,
-            another_user_borrow,
-            admin_borrow,
-        ) = sample_bd()
-        second_book = sample_book(title="second book")
+    @mock.patch("borrowing.views.create_stripe_session")
+    def test_authenticated_user_can_create_borrowing(
+        self, mock_session_create
+    ):
+        mock_session_create.return_value = Response(
+            {"session_id": "test_session_123"}, status=200
+        )
+        auth_user = get_user_model().objects.create_user(
+            email="<EMAIL>", password="<PASSWORD>"
+        )
+        book = sample_book()
         self.client.force_authenticate(user=auth_user)
-        expected_return_date = date.today() + timedelta(days=10)
+        expected_return_date = timezone_today() + timedelta(days=10)
         expected_return_date_str = expected_return_date.strftime("%Y-%m-%d")
         payload = {
             "expected_return_date": expected_return_date_str,
-            "book": second_book.id,
+            "book": book.id,
         }
-        response = self.client.post(URL_BORROWING, data=payload)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        created_borrowing = Borrowing.objects.get(id=response.data["id"])
-
+        self.client.post(URL_BORROWING, data=payload)
+        created_borrowing = Borrowing.objects.first()
         self.assertEqual(created_borrowing.user, auth_user)
         self.assertEqual(created_borrowing.book.id, payload["book"])
         self.assertEqual(created_borrowing.borrow_date, date.today())
-        self.assertEqual(created_borrowing.expected_return_date, expected_return_date)
+        self.assertEqual(
+            created_borrowing.expected_return_date, expected_return_date
+        )
         self.assertEqual(created_borrowing.actual_return_date, None)
+        amount = (
+            created_borrowing.expected_return_date
+            - created_borrowing.borrow_date
+        ).days * book.daily_fee
+        mock_session_create.assert_called_once_with(
+            borrowing=created_borrowing, amount=amount, payments_type="PAYMENT"
+        )
 
     def test_should_not_create_with_invalid_data(self):
         book = sample_book()
@@ -196,7 +221,9 @@ class Authenticated(TestCase):
             email="some@email.com", password="somepassword"
         )
         self.client.force_authenticate(user=user)
-        expected_return_date = (date.today() - timedelta(days=1)).strftime("%Y-%m-%d")
+        expected_return_date = (date.today() - timedelta(days=1)).strftime(
+            "%Y-%m-%d"
+        )
         payload = {
             "expected_return_date": expected_return_date,
             "book": book.id,
@@ -204,7 +231,9 @@ class Authenticated(TestCase):
         response = self.client.post(URL_BORROWING, data=payload)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-        expected_return_date = (date.today() + timedelta(days=1)).strftime("%Y-%m-%d")
+        expected_return_date = (date.today() + timedelta(days=1)).strftime(
+            "%Y-%m-%d"
+        )
         payload = {
             "expected_return_date": expected_return_date,
             "book": book.id + 1,
@@ -213,18 +242,22 @@ class Authenticated(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_book_inventory_should_increase_by_1(self):
-        (
-            book,
-            auth_user,
-            another_user,
-            admin,
-            user_borrow,
-            another_user_borrow,
-            admin_borrow,
-        ) = sample_bd()
+        # (
+        #     book,
+        #     auth_user,
+        #     another_user,
+        #     admin,
+        #     user_borrow,
+        #     another_user_borrow,
+        #     admin_borrow,
+        # ) = sample_bd()
+        book = sample_book()
+        auth_user = get_user_model().objects.create_user(
+            email="<EMAIL>", password="<PASSWORD>"
+        )
         book_inventory = book.inventory
         self.client.force_authenticate(user=auth_user)
-        expected_return_date = date.today() + timedelta(days=10)
+        expected_return_date = timezone_today() + timedelta(days=10)
         expected_return_date_str = expected_return_date.strftime("%Y-%m-%d")
         payload = {
             "expected_return_date": expected_return_date_str,
@@ -254,11 +287,14 @@ class Authenticated(TestCase):
         self.assertEqual(len(borrowings), 0)
 
     def test_book_can_not_be_returned_twice(self):
+
         book = sample_book()
         user = get_user_model().objects.create_user(
             email="some@email.com", password="some_password"
         )
-        expected_return_date = (date.today() + timedelta(days=1)).strftime("%Y-%m-%d")
+        expected_return_date = (date.today() + timedelta(days=1)).strftime(
+            "%Y-%m-%d"
+        )
         borrowing = Borrowing.objects.create(
             book=book, user=user, expected_return_date=expected_return_date
         )
@@ -267,4 +303,3 @@ class Authenticated(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         response = self.client.post(f"{URL_BORROWING}{borrowing.id}/return/")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        ##Повертає той что брав, чи адмін, дата повернення сьогодні чи обирати
