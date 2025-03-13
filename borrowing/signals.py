@@ -8,7 +8,8 @@ from telegram_bot.notifications import run_send_created
 def borrowing_created(sender, instance, created, **kwargs):
     if created:
         telegram_id = instance.user.telegram_id
-        run_send_created(telegram_id=telegram_id, borrowing=instance)
-        print(
-            f"Borrowing '{instance.id}' by {instance.book} has been created."
-        )
+        if telegram_id:
+            run_send_created(telegram_id=telegram_id, borrowing=instance)
+            print(
+                f"Borrowing '{instance.id}' by {instance.book} has been created."
+            )

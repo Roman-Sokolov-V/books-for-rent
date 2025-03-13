@@ -39,6 +39,7 @@ def create_stripe_session(
     """
     Створює Stripe Payment Session для оплати.
     """
+    print("start create session")
     session = stripe.checkout.Session.create(
         payment_method_types=["card"],
         line_items=[
@@ -66,6 +67,7 @@ def create_stripe_session(
             session_url=session.url,
             status="PENDING",
         )
+        print("Payment created successfully")
         return redirect(session.url, code=303)
     except ValidationError as e:
         print(f"Payment creation failed: {e}")

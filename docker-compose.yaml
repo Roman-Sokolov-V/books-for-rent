@@ -1,0 +1,43 @@
+services:
+  web:
+    build:
+      context: .
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "python manage.py wait_for_db &&
+      python manage.py migrate &&
+      python manage.py runserver 0.0.0.0:8000 &
+      python manage.py qcluster &
+      python manage.py runbot & wait"
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:15.12-alpine3.21
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:$PGDATA
+
+  redis:
+    image: redis:alpine3.21
+
+  stripe:
+    image: stripe/stripe-cli:latest
+    env_file:
+      - .env
+    command: listen --api-key $STRIPE_SECRET_KEY --device-name $STRIPE_DEVICE_NAME --forward-to http://web:8000/payments/webhook/
+
+
+    depends_on:
+      - web
+
+volumes:
+  db_data:

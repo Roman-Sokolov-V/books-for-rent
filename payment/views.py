@@ -57,7 +57,7 @@ endpoint_secret = settings.STRIPE_WEBHOOK_SECRET
 @api_view(["POST"])
 @csrf_exempt
 def my_webhook_view(request):
-
+    print("start webhook")
     payload = request.body
     sig_header = request.META["HTTP_STRIPE_SIGNATURE"]
     event = None
@@ -67,7 +67,7 @@ def my_webhook_view(request):
             payload, sig_header, endpoint_secret
         )
     except ValueError as e:
-        print("⚠️  Verification failed." + str(e))
+        #print("⚠️  Verification failed." + str(e))
         return HttpResponse(status=400)
     except stripe.error.SignatureVerificationError as e:
         print("⚠️  Webhook signature verification failed." + str(e))
